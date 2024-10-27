@@ -84,52 +84,50 @@ class BaseModel(pl.LightningModule):
         """
         Training step: compute loss for a single batch.
         """
-        target = batch[self.output_key]  # Always use the summary as the target
-        output = self(batch, targets=target, use_teacher_forcing=True)  # Forward pass
+        target = batch[self.output_key]
 
-        # Use the target's length to trim or adjust the output
-        target_length = target.size(1)  # Assuming target is of shape (batch_size, target_length)
+        # Decide whether to use teacher forcing based on a random threshold
+        use_teacher_forcing = torch.rand(1).item() < 0.8
 
-        # Trim the output to match the target length
-        output = output[:, :target_length, :]  # (batch_size, target_length, vocab_size)
+        if use_teacher_forcing:
+            # Teacher forcing: GPT computes the loss internally
+            loss = self(batch, targets=target, use_teacher_forcing=True)
+        else:
+            # Autoregressive generation: GPT returns token IDs, we need to compute the loss manually
+            output = self(batch, use_teacher_forcing=False)
 
-        # Reshape output and target to match the requirement of CrossEntropyLoss
-        output = output.reshape(-1, output.size(-1))  # Reshape to (batch_size * target_length, vocab_size)
-        target = target.reshape(-1)  # Reshape to (batch_size * target_length)
+            # We need to compare the generated output (token IDs) with the target token IDs.
+            # Since output from `generate()` is token IDs, no need to reshape
+            target = target[:, 1:]  # Shift target to ignore the first token (for autoregressive prediction)
 
-        # Compute the training loss
-        loss = self.loss(output, target)  # CrossEntropyLoss expects (N, C) and (N), where C is vocab_size
-        
-        # Log the training loss
+            # Compute the loss manually by comparing output tokens with target tokens
+            loss = self.loss(output[:, :target.size(1)], target)
+
+        # Log the loss
         self.log("train_loss", loss, prog_bar=True)
-        
+
         return loss
 
 
     def validation_step(self, batch, batch_idx):
         """
         Validation step: compute validation loss for a single batch.
-        Adjust output to match the length of the target.
         """
-        output = self(batch)  # Forward pass
-        target = batch[self.output_key]  # Always use the summary as the target
+        target = batch[self.output_key]
 
-        # Use the target's length to trim or adjust the output
-        target_length = target.size(1)  # Assuming target is of shape (batch_size, target_length)
-        
-        # Trim the output to match the target length
-        output = output[:, :target_length, :]  # (batch_size, target_length, vocab_size)
+        # In validation, we typically use autoregressive generation
+        output = self(batch, use_teacher_forcing=False)
 
-        # Reshape output and target to match the requirement of CrossEntropyLoss
-        output = output.reshape(-1, output.size(-1))  # Reshape to (batch_size * target_length, vocab_size)
-        target = target.reshape(-1)  # Reshape to (batch_size * target_length)
+        # We need to compare the generated output (token IDs) with the target token IDs.
+        # Since output from `generate()` is token IDs, no need to reshape
+        target = target[:, 1:]  # Shift target to ignore the first token (for autoregressive prediction)
 
-        # Compute validation loss
-        val_loss = self.valid_loss(output, target)  # CrossEntropyLoss expects (N, C) and (N), where C is vocab_size
-        
+        # Compute validation loss manually
+        val_loss = self.valid_loss(output[:, :target.size(1)], target)
+
         # Log the validation loss
         self.log("val_loss", val_loss, prog_bar=True)
-        
+
         return val_loss
 
 
