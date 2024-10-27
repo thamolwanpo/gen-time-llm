@@ -93,21 +93,24 @@ class BaseModel(pl.LightningModule):
             # Teacher forcing: GPT computes the loss internally
             loss = self(batch, targets=target, use_teacher_forcing=True)
         else:
-            # Autoregressive generation: GPT returns token IDs, we need to compute the loss manually
+            # Autoregressive generation: no loss from GPT, so we compute it manually
             output = self(batch, use_teacher_forcing=False)
+            
+            # Use the target's length to trim or adjust the output
+            target_length = target.size(1)
+            output = output[:, :target_length, :]  # Trim output to match target length
+            
+            # Reshape output and target for CrossEntropyLoss
+            output = output.reshape(-1, output.size(-1))
+            target = target.reshape(-1)
 
-            # We need to compare the generated output (token IDs) with the target token IDs.
-            # Since output from `generate()` is token IDs, no need to reshape
-            target = target[:, 1:]  # Shift target to ignore the first token (for autoregressive prediction)
-
-            # Compute the loss manually by comparing output tokens with target tokens
-            loss = self.loss(output[:, :target.size(1)], target)
+            # Compute the loss manually
+            loss = self.loss(output, target)
 
         # Log the loss
         self.log("train_loss", loss, prog_bar=True)
 
         return loss
-
 
     def validation_step(self, batch, batch_idx):
         """
@@ -115,20 +118,25 @@ class BaseModel(pl.LightningModule):
         """
         target = batch[self.output_key]
 
-        # In validation, we typically use autoregressive generation
+        # In validation, we typically don't use teacher forcing, so we just run autoregressive generation
         output = self(batch, use_teacher_forcing=False)
 
-        # We need to compare the generated output (token IDs) with the target token IDs.
-        # Since output from `generate()` is token IDs, no need to reshape
-        target = target[:, 1:]  # Shift target to ignore the first token (for autoregressive prediction)
+        # Use the target's length to trim or adjust the output
+        target_length = target.size(1)
+        output = output[:, :target_length, :]  # Trim output to match target length
+        
+        # Reshape output and target for CrossEntropyLoss
+        output = output.reshape(-1, output.size(-1))
+        target = target.reshape(-1)
 
         # Compute validation loss manually
-        val_loss = self.valid_loss(output[:, :target.size(1)], target)
+        val_loss = self.valid_loss(output, target)
 
         # Log the validation loss
         self.log("val_loss", val_loss, prog_bar=True)
 
         return val_loss
+
 
 
     def configure_optimizers(self):
