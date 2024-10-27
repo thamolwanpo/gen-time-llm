@@ -97,8 +97,11 @@ class BaseModel(pl.LightningModule):
             output = self(batch, use_teacher_forcing=False)
             
             # Use the target's length to trim or adjust the output
-            target_length = target.size(1)
-            output = output[:, :target_length, :]  # Trim output to match target length
+            # Target has shape (batch_size, target_length)
+            # Compare the generated output tokens (output) with the target token IDs
+            target = target[:, 1:]  # Shift target to ignore the first token (as autoregressive generation predicts next tokens)
+
+            output = output[:, :target.size(1), :]  # Trim output to match target length
             
             # Reshape output and target for CrossEntropyLoss
             output = output.reshape(-1, output.size(-1))
@@ -122,8 +125,11 @@ class BaseModel(pl.LightningModule):
         output = self(batch, use_teacher_forcing=False)
 
         # Use the target's length to trim or adjust the output
-        target_length = target.size(1)
-        output = output[:, :target_length, :]  # Trim output to match target length
+        # Target has shape (batch_size, target_length)
+        # Compare the generated output tokens (output) with the target token IDs
+        target = target[:, 1:]  # Shift target to ignore the first token (as autoregressive generation predicts next tokens)
+
+        output = output[:, :target.size(1), :]  # Trim output to match target length
         
         # Reshape output and target for CrossEntropyLoss
         output = output.reshape(-1, output.size(-1))
