@@ -1,0 +1,5 @@
+faker
+nbdev
+fastcore
+optuna
+pytorch-lightning

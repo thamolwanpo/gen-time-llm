@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "gen-time-llm"
+  site-url: "https://thamolwanpo.github.io/gen-time-llm"
+  description: ""
+  repo-branch: main
+  repo-url: "https://github.com/thamolwanpo/gen-time-llm"
