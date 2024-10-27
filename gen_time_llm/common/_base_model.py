@@ -84,8 +84,8 @@ class BaseModel(pl.LightningModule):
         """
         Training step: compute loss for a single batch.
         """
-        output = self(batch)  # Forward pass
         target = batch[self.output_key]  # Always use the summary as the target
+        output = self(batch, targets=target, use_teacher_forcing=True)  # Forward pass
 
         # Use the target's length to trim or adjust the output
         target_length = target.size(1)  # Assuming target is of shape (batch_size, target_length)
