@@ -22,7 +22,7 @@ class BaseModel(pl.LightningModule):
     def __init__(
         self,
         random_seed,
-        loss,  # Loss function
+        loss=None,  # Loss function
         valid_loss=None,  # Validation loss (optional)
         optimizer=torch.optim.Adam,  # Default optimizer
         optimizer_kwargs=None,  # Additional arguments for optimizer
@@ -82,61 +82,33 @@ class BaseModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         """
-        Training step: compute loss for a single batch.
+        Training step: compute loss for a single batch without teacher forcing.
         """
         target = batch[self.output_key]
 
-        # Decide whether to use teacher forcing based on a random threshold
-        use_teacher_forcing = torch.rand(1).item() < 0.8
+        # Autoregressive generation (always)
+        loss = self.forward(batch, target)
 
-        if use_teacher_forcing:
-            # Teacher forcing: GPT computes the loss internally
-            loss = self(batch, targets=target, use_teacher_forcing=True)
-        else:
-            # Autoregressive generation: no loss from GPT, so we compute it manually
-            output = self(batch, use_teacher_forcing=False)
-            
-            # Use the target's length to trim or adjust the output
-            target_length = target.size(1)
-            output = output[:, :target_length, :]  # Trim output to match target length
-            
-            # Reshape output and target for CrossEntropyLoss
-            output = output.reshape(-1, output.size(-1))
-            target = target.reshape(-1)
-
-            # Compute the loss manually
-            loss = self.loss(output, target)
-
-        # Log the loss
+        # Log the training loss for monitoring
         self.log("train_loss", loss, prog_bar=True)
 
         return loss
 
+
     def validation_step(self, batch, batch_idx):
         """
-        Validation step: compute validation loss for a single batch.
+        Validation step: compute validation loss for a single batch in the text generation task.
         """
-        target = batch[self.output_key]
+        # Extract the target (i.e., ground-truth sequence) from the batch
+        target = batch[self.output_key]  # Assuming self.output_key points to the correct target field
 
-        # In validation, we typically don't use teacher forcing, so we just run autoregressive generation
-        output = self(batch, use_teacher_forcing=False)
+        # Autoregressive generation (always)
+        loss = self.forward(batch, target)
 
-        # Use the target's length to trim or adjust the output
-        target_length = target.size(1)
-        output = output[:, :target_length, :]  # Trim output to match target length
-        
-        # Reshape output and target for CrossEntropyLoss
-        output = output.reshape(-1, output.size(-1))
-        target = target.reshape(-1)
+        # Log the validation loss for monitoring
+        self.log("val_loss", loss, prog_bar=True)
 
-        # Compute validation loss manually
-        val_loss = self.valid_loss(output, target)
-
-        # Log the validation loss
-        self.log("val_loss", val_loss, prog_bar=True)
-
-        return val_loss
-
+        return loss
 
 
     def configure_optimizers(self):
