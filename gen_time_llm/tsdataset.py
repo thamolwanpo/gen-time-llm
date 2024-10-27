@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 class TimeSeriesLoader(DataLoader):
     """TimeSeriesLoader DataLoader.
     
-    Custom DataLoader to work with time series datasets, handling dynamic padding for tokenized summaries and attention masks,
+    Custom DataLoader to work with time series datasets, handling fixed padding for tokenized summaries and attention masks,
     and using the tokenizer's `eos_token_id` for padding.
     """
     
@@ -38,7 +38,7 @@ class TimeSeriesLoader(DataLoader):
     
     def _collate_fn(self, batch):
         """
-        Custom collate function to handle time series data and dynamically pad tokenized summaries with `eos_token_id`.
+        Custom collate function to handle time series data and apply fixed padding of 768 tokens for tokenized summaries.
         """
         elem = batch[0]
         elem_type = type(elem)
@@ -55,21 +55,21 @@ class TimeSeriesLoader(DataLoader):
             # Collate sector information (as a list)
             sector = [d['sector'] for d in batch]
             
-            # Find the maximum sequence length in the current batch for dynamic padding
-            max_length = max([d['summary_input_ids'].size(0) for d in batch])
+            # Fixed length for the summaries
+            fixed_length = 768
             
-            # Dynamically pad summaries using eos_token_id
+            # Pad or truncate summaries to a fixed length of 768 tokens using eos_token_id
             eos_token_id = self.tokenizer.eos_token_id
-            summary_input_ids = torch.stack([torch.cat([d['summary_input_ids'], 
-                                                        torch.full((max_length - d['summary_input_ids'].size(0),), 
+            summary_input_ids = torch.stack([torch.cat([d['summary_input_ids'][:fixed_length], 
+                                                        torch.full((fixed_length - min(d['summary_input_ids'].size(0), fixed_length),), 
                                                                    eos_token_id, dtype=torch.long)])
                                              for d in batch])
             
-            # Dynamically pad attention masks (using 0 for padding)
+            # Pad or truncate attention masks to the same fixed length of 768
             attention_mask = None
             if batch[0]['attention_mask'] is not None:
-                attention_mask = torch.stack([torch.cat([d['attention_mask'], 
-                                                         torch.zeros(max_length - d['attention_mask'].size(0), 
+                attention_mask = torch.stack([torch.cat([d['attention_mask'][:fixed_length], 
+                                                         torch.zeros(fixed_length - min(d['attention_mask'].size(0), fixed_length), 
                                                                      dtype=torch.long)])
                                               for d in batch])
             
@@ -79,7 +79,7 @@ class TimeSeriesLoader(DataLoader):
             # Collate columns of temporal data (should remain consistent across batch)
             temporal_cols = batch[0]['temporal_cols']
 
-            # Return the collated batch with dynamic padding for tokenized summaries
+            # Return the collated batch with fixed padding for tokenized summaries and attention masks
             return dict(
                 temporal_series=temporal_series,
                 sector=sector,
