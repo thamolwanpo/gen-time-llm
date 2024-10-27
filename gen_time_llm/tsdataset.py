@@ -7,6 +7,7 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
+import re
 import torch
 import json
 from collections.abc import Mapping
@@ -125,6 +126,13 @@ class TimeSeriesDataset(Dataset):
         self.add_attention_mask = add_attention_mask
         self.n_groups = len(self.data_list)  # Number of time series entities
 
+    def clean_text(self, text):
+        # Remove duplicate spaces and newlines
+        text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces with a single space
+        text = text.replace('\n', ' ')  # Replace newlines with a space
+        text = text.strip()  # Remove leading and trailing spaces
+        return text
+
     def __len__(self):
         """
         Return the number of time series entities in the dataset.
@@ -140,7 +148,7 @@ class TimeSeriesDataset(Dataset):
         
         # Extract fields from the dictionary
         temporal_series = torch.tensor(data['positive_time_series'], dtype=torch.float32)
-        anchor_summary = data['anchor_summary']
+        anchor_summary = self.clean_text(data['anchor_summary'])
         country = data['country']
         columns = data['columns']
         sector_str = data['sector']  # This is a string representation of sectors

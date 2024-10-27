@@ -36,7 +36,7 @@ class GRUGPTModel(BaseModel):
         gru_input_size=128,  # Size of the input for the GRU (e.g., number of features in the time series)
         **kwargs
     ):
-        super().__init__(
+        super(GRUGPTModel).__init__(
             random_seed=random_seed,
             loss=loss,
             tokenizer=tokenizer,
