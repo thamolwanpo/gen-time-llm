@@ -154,15 +154,15 @@ class TimeSeriesDataset(Dataset):
         sector_str = data['sector']  # This is a string representation of sectors
 
         # Manually add the BOS and EOS tokens to the input summary
-        bos_token = self.tokenizer.bos_token or self.tokenizer.cls_token  # Default to CLS if BOS isn't defined
+        # bos_token = self.tokenizer.bos_token or self.tokenizer.cls_token  # Default to CLS if BOS isn't defined
         eos_token = self.tokenizer.eos_token or self.tokenizer.sep_token  # Default to SEP if EOS isn't defined
 
-        # Concatenate the BOS and EOS tokens to the summary
-        anchor_summary_with_bos_eos = bos_token + " " + anchor_summary + " " + eos_token
+        # Concatenate the EOS tokens to the summary
+        anchor_summary_with_eos = anchor_summary + " " + eos_token
 
         # Tokenize the summary with the specified tokenizer
         tokenized_summary = self.tokenizer(
-            anchor_summary_with_bos_eos,
+            anchor_summary_with_eos,
             max_length=self.max_length,
             truncation=True,
             return_tensors='pt'  # Return PyTorch tensors
