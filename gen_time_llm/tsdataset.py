@@ -59,13 +59,10 @@ class TimeSeriesLoader(DataLoader):
             max_length = max([d['summary_input_ids'].size(0) for d in batch])
             
             # Dynamically pad summaries using eos_token_id
-            pad_token = '[PAD]'
-            self.tokenizer.add_special_tokens({'pad_token': pad_token})
-            self.tokenizer.pad_token = pad_token
-            
+            eos_token_id = self.tokenizer.eos_token_id
             summary_input_ids = torch.stack([torch.cat([d['summary_input_ids'], 
                                                         torch.full((max_length - d['summary_input_ids'].size(0),), 
-                                                                   self.tokenizer.pad_token_id, dtype=torch.long)])
+                                                                   eos_token_id, dtype=torch.long)])
                                              for d in batch])
             
             # Dynamically pad attention masks (using 0 for padding)
@@ -274,9 +271,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.drop_last = drop_last
         self.shuffle_train = shuffle_train
 
-        pad_token = '[PAD]'
-        self.tokenizer.add_special_tokens({'pad_token': pad_token})
-        self.tokenizer.pad_token = pad_token
+        self.tokenizer.pad_token = self.tokenizer.eos_token  # Ensure padding token is set
     
     def train_dataloader(self):
         """
