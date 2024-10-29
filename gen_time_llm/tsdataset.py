@@ -97,6 +97,8 @@ class TimeSeriesLoader(DataLoader):
             # Collate columns of temporal data (should remain consistent across batch)
             temporal_cols = batch[0]['temporal_cols']
 
+            year_range = [d['year_range'] for d in batch]
+
             # Return the collated batch with dynamic padding for tokenized summaries
             return dict(
                 temporal_series=temporal_series,
@@ -104,7 +106,8 @@ class TimeSeriesLoader(DataLoader):
                 summary_input_ids=summary_input_ids,
                 attention_mask=attention_mask,
                 country=country,
-                temporal_cols=temporal_cols
+                temporal_cols=temporal_cols,
+                year_range=year_range
             )
 
         # Raise error if an unsupported data type is passed
@@ -177,6 +180,7 @@ class TimeSeriesDataset(Dataset):
         country = data['country']
         columns = data['columns']
         sector_str = data['sector']  # This is a string representation of sectors
+        year_range = data['year_range']
 
         # Manually add the BOS and EOS tokens to the input summary
         # bos_token = self.tokenizer.bos_token or self.tokenizer.cls_token  # Default to CLS if BOS isn't defined
@@ -205,7 +209,8 @@ class TimeSeriesDataset(Dataset):
             'summary_input_ids': input_ids,      # Tokenized summary
             'attention_mask': attention_mask,    # Attention mask (if applicable)
             'country': country,                  # Static feature (country)
-            'temporal_cols': columns             # Names of temporal features
+            'temporal_cols': columns,            # Names of temporal features
+            'year_range': year_range
         }
     
     def __repr__(self):
@@ -312,12 +317,12 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             # batch_sampler=sampler,
             drop_last=self.drop_last
         )
-        loader = TimeSeriesLoader(
-            self.train_dataset,
-            tokenizer=self.tokenizer,
-            num_workers=self.num_workers,
-            batch_sampler=sampler
-        )
+        # loader = TimeSeriesLoader(
+        #     self.train_dataset,
+        #     tokenizer=self.tokenizer,
+        #     num_workers=self.num_workers,
+        #     batch_sampler=sampler
+        # )
         return loader
     
     def val_dataloader(self):
