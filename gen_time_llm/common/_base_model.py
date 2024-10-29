@@ -87,7 +87,7 @@ class BaseModel(pl.LightningModule):
         target = batch[self.output_key]
 
         # Autoregressive generation (always)
-        loss = self.forward(batch, target)
+        loss = self.forward(batch, target, teacher_forcing=True)
 
         # Log the training loss for monitoring
         self.log("train_loss", loss, prog_bar=True)
@@ -103,7 +103,7 @@ class BaseModel(pl.LightningModule):
         target = batch[self.output_key]  # Assuming self.output_key points to the correct target field
 
         # Autoregressive generation (always)
-        loss = self.forward(batch, target)
+        loss = self.forward(batch, target, teacher_forcing=False)
 
         # Log the validation loss for monitoring
         self.log("val_loss", loss, prog_bar=True)
