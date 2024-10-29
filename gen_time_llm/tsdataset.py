@@ -142,7 +142,14 @@ class TimeSeriesDataset(Dataset):
         self.max_length = max_length
         self.sorted = sorted
         self.add_attention_mask = add_attention_mask
-        self.n_groups = len(self.data_list)  # Number of time series entities
+        
+        # Filter out data entries with tokenized summary lengths < 100
+        self.data_list = [
+            data for data in data_list 
+            if len(tokenizer(data['anchor_summary'], max_length=max_length, truncation=True)['input_ids']) >= 100
+        ]
+
+        self.n_groups = len(self.data_list)  # Update the count after filtering
 
     def clean_text(self, text):
         # Remove duplicate spaces and newlines
