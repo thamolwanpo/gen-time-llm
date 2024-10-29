@@ -11,10 +11,10 @@ import re
 import torch
 import json
 from collections.abc import Mapping
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 import pytorch_lightning as pl
 
-# %% ../nbs/tsdataset.ipynb 5
+# %% ../nbs/tsdataset.ipynb 6
 class TimeSeriesLoader(DataLoader):
     """TimeSeriesLoader DataLoader.
     
@@ -92,7 +92,7 @@ class TimeSeriesLoader(DataLoader):
         # Raise error if an unsupported data type is passed
         raise TypeError(f'Unknown type {elem_type}')
 
-# %% ../nbs/tsdataset.ipynb 7
+# %% ../nbs/tsdataset.ipynb 8
 class TimeSeriesDataset(Dataset):
     def __init__(self,
                  data_list,  # List of dictionaries containing time series and metadata
@@ -231,7 +231,7 @@ class TimeSeriesDataset(Dataset):
             add_attention_mask=add_attention_mask
         )
 
-# %% ../nbs/tsdataset.ipynb 10
+# %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
     
     def __init__(
@@ -277,12 +277,14 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         """
         Creates and returns a DataLoader for the training dataset.
         """
+        sampler = LengthBasedBatchSampler(self.train_dataset, batch_size=self.batch_size, sort_key='summary_input_ids')
         loader = TimeSeriesLoader(
             self.train_dataset,
             tokenizer=self.tokenizer,  # Pass the tokenizer
             batch_size=self.batch_size, 
             num_workers=self.num_workers,
             shuffle=self.shuffle_train,
+            batch_sampler=sampler,
             drop_last=self.drop_last
         )
         return loader
