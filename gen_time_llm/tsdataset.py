@@ -425,22 +425,22 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         """
         Creates and returns a DataLoader for the training dataset.
         """
-        # sampler = LengthBasedBatchSampler(self.train_dataset, batch_size=self.batch_size, sort_key='summary_input_ids')
-        loader = TimeSeriesLoader(
-            self.train_dataset,
-            tokenizer=self.tokenizer,  # Pass the tokenizer
-            batch_size=self.batch_size, 
-            num_workers=self.num_workers,
-            shuffle=self.shuffle_train,
-            # batch_sampler=sampler,
-            drop_last=self.drop_last
-        )
+        sampler = LengthBasedBatchSampler(self.train_dataset, batch_size=self.batch_size, sort_key='summary_input_ids')
         # loader = TimeSeriesLoader(
         #     self.train_dataset,
-        #     tokenizer=self.tokenizer,
+        #     tokenizer=self.tokenizer,  # Pass the tokenizer
+        #     batch_size=self.batch_size, 
         #     num_workers=self.num_workers,
-        #     batch_sampler=sampler
+        #     shuffle=self.shuffle_train,
+        #     # batch_sampler=sampler,
+        #     drop_last=self.drop_last
         # )
+        loader = TimeSeriesLoader(
+            self.train_dataset,
+            tokenizer=self.tokenizer,
+            num_workers=self.num_workers,
+            batch_sampler=sampler
+        )
         return loader
     
     def val_dataloader(self):
