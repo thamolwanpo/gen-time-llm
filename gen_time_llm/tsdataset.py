@@ -109,7 +109,8 @@ class TimeSeriesLoader(DataLoader):
                 attention_mask=attention_mask,
                 country=country,
                 temporal_cols=temporal_cols,
-                year_range=year_range
+                year_range=year_range,
+                col_indices=col_indices
             )
 
         # Raise error if an unsupported data type is passed
