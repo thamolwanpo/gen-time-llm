@@ -226,6 +226,7 @@ class TimeSeriesDataset(Dataset):
                  tokenizer,  # Tokenizer for summarizing text (e.g., from HuggingFace's Transformers library)
                  max_length: int = 512,  # Max token length for tokenization
                  sorted=False,  # Whether the dataset is already sorted
+                 mode='train',
                  add_attention_mask: bool = True  # Whether to include attention mask for tokenized summaries
                 ):
         """
@@ -252,13 +253,19 @@ class TimeSeriesDataset(Dataset):
         self.sorted = sorted
         self.add_attention_mask = add_attention_mask
         
-        # Filter out data entries with tokenized summary lengths < 100
-        self.data_list = [
-            data for data in data_list 
-            if len(tokenizer(data['anchor_summary'], max_length=max_length, truncation=True)['input_ids']) >= 100
-        ]
+        if mode == 'train':
+            # Filter out data entries with tokenized summary lengths < 100
+            self.data_list = [
+                data for data in data_list 
+                if len(tokenizer(data['anchor_summary'], max_length=max_length, truncation=True)['input_ids']) >= 100
+            ]
 
-        self.n_groups = len(self.data_list)  # Update the count after filtering
+            self.n_groups = len(self.data_list)  # Update the count after filtering
+
+        else:
+            self.n_groups = len(self.data_list)  # Update the count after filtering
+
+
 
     def clean_text(self, text):
         # Remove duplicate spaces and newlines
@@ -350,7 +357,7 @@ class TimeSeriesDataset(Dataset):
         )
     
     @staticmethod
-    def from_jsonl(file_path, tokenizer, max_length=512, sorted=False, add_attention_mask=True):
+    def from_jsonl(file_path, tokenizer, max_length=512, sorted=False, add_attention_mask=True, mode='train'):
         """
         Static method to load time series data from a JSONL file.
         
@@ -376,7 +383,8 @@ class TimeSeriesDataset(Dataset):
             tokenizer=tokenizer,
             max_length=max_length,
             sorted=sorted,
-            add_attention_mask=add_attention_mask
+            add_attention_mask=add_attention_mask,
+            mode=mode
         )
 
 # %% ../nbs/tsdataset.ipynb 12
